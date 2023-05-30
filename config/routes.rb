@@ -5,6 +5,13 @@ Rails.application.routes.draw do
 
   scope controller: 'api', path: 'api' do
     post 'user/login/' => :user_login
+    post 'set/clock_in/' => :set_clock_in
+    post 'follow/' => :follow_friend
+    delete 'follow/' => :unfollow_friend
+
+    get 'sleep/record' => :sleep_record
+
+    # get 'api/getTagStory/:tagid', to: 'story_api#getTagStory', :constraints => {:tagid => /\d+/} #need test case
   end
 
 end

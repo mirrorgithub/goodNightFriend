@@ -1,6 +1,16 @@
 class UserFollowList < ApplicationRecord
 	belongs_to :user
 	belongs_to :friend, class_name: "User"
+
+	validate :ids_validator
+
+	private
+
+	def ids_validator
+		if (user_id == friend_id)
+			errors.add(:ids, message: "user_id cannot equal to friend_id")
+		end
+	end
 end
 
 
