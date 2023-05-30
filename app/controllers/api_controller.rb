@@ -24,7 +24,9 @@ class ApiController < ApplicationController
 
 	def follow_friend
 		return render json: {result: R_PARAMS_ERROR, reason: "require friend_id"} if !(params[:friend_id].present?)
-		return render json: {result: R_PARAMS_ERROR, reason: "user_id cannot equal to friend_id"} if session[:user_id] == params[:friend_id].to_i
+
+		# user cannot follow itself
+		return render json: {result: R_PARAMS_ERROR, reason: "user_id cannot equal to friend_id"} if session[:user_id] == params[:friend_id].to_i 
 		uu = User.find_by(id: params[:friend_id])
 		
 		return render json: {result: R_DATA_NOT_FOUND, reason: "friend not found"} if !uu
