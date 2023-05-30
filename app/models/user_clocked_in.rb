@@ -12,8 +12,6 @@ class UserClockedIn < ApplicationRecord
 			errors.add(:action_id, message: "action_id invalid")
 		end
 	end
-
-	# add user action_id check
 end
 
 
