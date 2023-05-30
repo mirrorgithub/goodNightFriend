@@ -22,6 +22,11 @@ RSpec.describe UserClockedIn, type: :model do
       
       expect(time1).not_to eql "#{usrClockIn2.clocked_in}" #because of the time zone, they would not equal
       expect(usrClockIn1.clocked_in).to eql usrClockIn2.clocked_in #the value is equal
+      expect(usrClockIn1.action_id).to eql 1 #default value
+
+      usrClockIn2.action_id = 3
+      expect(usrClockIn2.save).to eql false
+      # p "#{usrClockIn2.errors.full_messages}" # get the error message via this way
     end
   end
 end

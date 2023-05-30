@@ -16,6 +16,7 @@ ActiveRecord::Schema.define(version: 2023_05_30_070109) do
     t.integer "user_id", null: false
     t.datetime "clocked_in", null: false
     t.string "timezone", null: false
+    t.integer "action_id", limit: 1, default: 1, unsigned: true
     t.string "city", default: ""
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
