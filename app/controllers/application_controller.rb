@@ -1,6 +1,12 @@
 class ApplicationController < ActionController::Base
 	rescue_from StandardError, :with => :exceptionCatch
 
+	protected
+	
+	def cacheExpire
+		7.days
+	end
+
 	private 
 
 	def exceptionCatch(err)
