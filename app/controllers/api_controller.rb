@@ -1,5 +1,6 @@
 class ApiController < ApplicationController
 	include ConstHelper
+	include ApiHelper
 
 	#some of the action need user login first, use before_action to check it
  	before_action :_check_login, except: [:user_login, :home] 
@@ -35,7 +36,7 @@ class ApiController < ApplicationController
 	#  return=>
 	# 		{result: R_PARAMS_ERROR, reason: "time zone error"}
 	# 		{result: R_PARAMS_ERROR, reason: "insert data error"}
-	# 		{result: R_SUCCESS}
+	# 		{result: R_SUCCESS, clcok_in_record: [{clocked_in: ,timezone: ,user_action: ,city: }, {clocked_in: ,timezone: ,user_action: ,city: }, ... ]}
 	def set_clock_in
 		tempTimeZone = Time.zone.name
 		tempTimeZone = Rails.cache.read("timezone_#{session[:user_id]}") if Rails.cache.read("timezone_#{session[:user_id]}")
@@ -64,7 +65,10 @@ class ApiController < ApplicationController
 		# time zone function
 		# https://thoughtbot.com/blog/its-about-time-zones
 		usrClockIn1 = UserClockedIn.create(createParams)
-		resultObj = usrClockIn1.save == false ? {result: R_PARAMS_ERROR, reason: "insert data error"} : {result: R_SUCCESS}
+		userClockedInData = UserClockedIn.where(user_id: session[:user_id]).order(created_at: :desc).map{ |uClockData|
+			{clocked_in: uClockData.clocked_in.strftime("%Y-%m-%d %H:%M:%S"), timezone: uClockData.timezone, user_action: user_action_str(uClockData.action_id), city: uClockData.city}
+		}
+		resultObj = usrClockIn1.save == false ? {result: R_PARAMS_ERROR, reason: "insert data error"} : {result: R_SUCCESS, clcok_in_record: userClockedInData}
 
 		render json: resultObj
 	end
