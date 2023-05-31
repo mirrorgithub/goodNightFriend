@@ -5,7 +5,7 @@ class CreateUserClockedIns < ActiveRecord::Migration[6.1]
 			t.datetime :clocked_in, null: false
 			t.string :timezone, null: false
 			t.column :action_id, 'tinyint unsigned', default: 1 #1 for go to bed, 2 for wake up
-			t.string :city, default: ""
+			t.string :city, default: "" #maybe we would like to know where is our friend
 			t.timestamps
 		end
 	end
