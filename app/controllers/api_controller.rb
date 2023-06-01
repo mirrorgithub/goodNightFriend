@@ -38,7 +38,7 @@ class ApiController < ApplicationController
 	# 		{result: R_PARAMS_ERROR, reason: "insert data error"}
 	# 		{result: R_SUCCESS, clcok_in_record: [{clocked_in: ,timezone: ,user_action: ,city: }, {clocked_in: ,timezone: ,user_action: ,city: }, ... ]}
 	def set_clock_in
-		tempTimeZone = Time.zone.name
+		tempTimeZone = "UTC"
 		tempTimeZone = Rails.cache.read("timezone_#{session[:user_id]}") if Rails.cache.read("timezone_#{session[:user_id]}")
 		tempTimeZone = params[:timezone] if (params[:timezone].present?)
 
@@ -59,14 +59,17 @@ class ApiController < ApplicationController
 
 		userTimeZone = Time.zone.name
 		createParams = {user_id: session[:user_id], city: tempCity, timezone: userTimeZone}
-		createParams[:clocked_in] = (params[:clocked_in].present?) ? params[:clocked_in] : Time.current
+		createParams[:clocked_in] = (params[:clocked_in].present?) ? Time.zone.parse(params[:clocked_in]).utc : Time.current.utc
 		createParams[:action_id] = params[:action_id] if (params[:action_id].present?) # I don't check the value of action_id. Leave it to validate function of UserClockedIn.
 
 		# time zone function
 		# https://thoughtbot.com/blog/its-about-time-zones
 		usrClockIn1 = UserClockedIn.create(createParams)
-		userClockedInData = UserClockedIn.where(user_id: session[:user_id]).order(created_at: :desc).map{ |uClockData|
-			{clocked_in: uClockData.clocked_in.strftime("%Y-%m-%d %H:%M:%S"), timezone: uClockData.timezone, user_action: user_action_str(uClockData.action_id), city: uClockData.city}
+		userClockedInData = UserClockedIn.where(user_id: session[:user_id]).order(created_at: :desc).map{ |ucData|
+			{clocked_in: Time.zone.parse(ucData.clocked_in.strftime("%Y-%m-%d %H:%M:%S")).in_time_zone(ucData.timezone).utc.strftime("%Y-%m-%d %H:%M:%S"),
+				timezone: ucData.timezone,
+				user_action: user_action_str(ucData.action_id), 
+				city: ucData.city}
 		}
 		resultObj = usrClockIn1.save == false ? {result: R_PARAMS_ERROR, reason: "insert data error"} : {result: R_SUCCESS, clcok_in_record: userClockedInData}
 
@@ -122,6 +125,14 @@ class ApiController < ApplicationController
 	end
 
 	def sleep_record
+
+		# userClockedInData = UserClockedIn.where(user_id: session[:user_id]).order(created_at: :desc).map{ |uClockData|
+		# 	{clocked_in: uClockData.clocked_in.strftime("%Y-%m-%d %H:%M:%S"), timezone: uClockData.timezone, user_action: user_action_str(uClockData.action_id), city: uClockData.city}
+		# }
+
+		userClockedInData = UserFollowList.includes(:friend => [:user_clocked_in]).where(user_id: session[:user_id]).order(created_at: :desc).map{ |uClockData|
+			{clocked_in: uClockData.clocked_in.strftime("%Y-%m-%d %H:%M:%S"), timezone: uClockData.timezone, user_action: user_action_str(uClockData.action_id), city: uClockData.city}
+		}
 	end
 
 	private 
