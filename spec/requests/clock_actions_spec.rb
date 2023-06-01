@@ -52,6 +52,54 @@ RSpec.describe "ClockActions", type: :request do
 		end
 
 		it "test get sleep record" do
+			uRay = User.find_by(name: "Ray")
+			uJohn = User.create(name: "John")
+
+			post "/api/user/login/", params: {:user_name=>"Ray"}
+			expect(JSON.parse(response.body)["result"]).to eql R_SUCCESS
+
+			cutTime = Time.current
+
+			post "/api/set/clock_in/", params:{:clocked_in=>cutTime.to_s, :city=>"Kaohsiung", :action_id=>2}
+			post "/api/set/clock_in/", params:{:clocked_in=>"#{cutTime - 8.hours}", :city=>"Kaohsiung"}
+
+			minusDay = 1.days
+			post "/api/set/clock_in/", params:{:clocked_in=>"#{cutTime - minusDay+ 1.minutes}", :city=>"Kaohsiung", :action_id=>2}
+			post "/api/set/clock_in/", params:{:clocked_in=>"#{cutTime - minusDay}", :city=>"Kaohsiung", :action_id=>2}
+			post "/api/set/clock_in/", params:{:clocked_in=>"#{cutTime - minusDay - 8.hours + 1.minutes}", :city=>"Kaohsiung"}
+			post "/api/set/clock_in/", params:{:clocked_in=>"#{cutTime - minusDay - 8.hours}", :city=>"Kaohsiung"}
+
+			minusDay = 2.days
+			post "/api/set/clock_in/", params:{:clocked_in=>"#{cutTime - minusDay}", :city=>"Kaohsiung", :action_id=>2}
+			post "/api/set/clock_in/", params:{:clocked_in=>"#{cutTime - minusDay - 8.hours}", :city=>"Kaohsiung"}
+
+			minusDay = 3.days
+			post "/api/set/clock_in/", params:{:clocked_in=>"#{cutTime - minusDay}", :city=>"Kaohsiung", :action_id=>2}
+			post "/api/set/clock_in/", params:{:clocked_in=>"#{cutTime - minusDay - 8.hours}", :city=>"Kaohsiung"}
+
+			minusDay = 4.days
+			post "/api/set/clock_in/", params:{:clocked_in=>"#{cutTime - minusDay}", :city=>"Kaohsiung", :action_id=>2}
+			# t1 = Time.zone.parse(UserClockedIn.last.clocked_in.to_s).utc
+			t1 = UserClockedIn.last.clocked_in
+			cutTime.in_time_zone("Fiji")
+			post "/api/set/clock_in/", params:{:clocked_in=>"#{cutTime - minusDay - 8.hours}", :city=>"Kaohsiung", :timezone => "Fiji"}
+			expect(t1 - UserClockedIn.last.clocked_in).to eql 8.hours.to_f
+			
+
+			minusDay = 7.days
+			post "/api/set/clock_in/", params:{:clocked_in=>"#{cutTime - minusDay}", :city=>"Kaohsiung", :action_id=>2}
+			post "/api/set/clock_in/", params:{:clocked_in=>"#{cutTime - minusDay - 8.hours}", :city=>"Kaohsiung"}
+			
+			minusDay = 8.days
+			post "/api/set/clock_in/", params:{:clocked_in=>"#{cutTime - minusDay}", :city=>"Kaohsiung", :action_id=>2}
+			post "/api/set/clock_in/", params:{:clocked_in=>"#{cutTime - minusDay - 8.hours}", :city=>"Kaohsiung"}
+
+			post "/api/user/login/", params: {:user_name=>"John"}
+			post "/api/follow/", params:{:friend_id=>uRay.id}
+			expect(JSON.parse(response.body)["result"]).to eql R_SUCCESS
+
+			# userClockedInData = UserFollowList.includes(:friend => [:user_clocked_in]).all
+			# p "#{userClockedInData[0].friend.user_clocked_in.inspect}"
 		end
 	end
 end
