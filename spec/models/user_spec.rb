@@ -9,8 +9,7 @@ require 'rails_helper'
 # bundle exec rspec spec/models/user_spec.rb
 
 RSpec.describe User, type: :model do
-  # pending "add some examples to (or delete) #{__FILE__}"
-
+  
   # test whether we can create user or not, and the charset
   it "create table test" do
     expect(User.create(name: "Ray")).to be_valid

@@ -3,6 +3,8 @@ require 'rails_helper'
 # rails generate rspec:integration user_login
 # bundle exec rspec spec/requests/user_logins_spec.rb
 
+# rspec type
+# https://github.com/rspec/rspec-rails/blob/main/features/Generators.md
 include ConstHelper
 
 RSpec.describe "UserLogins", type: :request do
