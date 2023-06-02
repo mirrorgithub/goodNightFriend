@@ -9,7 +9,8 @@ Rails.application.routes.draw do
     post 'follow/' => :follow_friend
     delete 'follow/' => :unfollow_friend
 
-    get 'sleep/record' => :sleep_record
+    # use post here because of the encode problem
+    post 'sleep/record' => :sleep_record
 
     # get 'api/getTagStory/:tagid', to: 'story_api#getTagStory', :constraints => {:tagid => /\d+/} #need test case
   end

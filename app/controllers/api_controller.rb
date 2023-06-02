@@ -71,6 +71,7 @@ class ApiController < ApplicationController
 				user_action: user_action_str(ucData.action_id), 
 				city: ucData.city}
 		}
+		
 		resultObj = usrClockIn1.save == false ? {result: R_PARAMS_ERROR, reason: "insert data error"} : {result: R_SUCCESS, clcok_in_record: userClockedInData}
 
 		render json: resultObj
@@ -124,15 +125,64 @@ class ApiController < ApplicationController
 		render json: {result: R_SUCCESS}
 	end
 
+	# the frontend need to give the time because of the time zone
+	# we might in the timezone +12 place and want to know the friend whom in timezone -12
+	# the time format is "%Y-%m-%d %H:%M:%S"
+	#  params=> 
+	# 		(int)friend_id
+	#  return=>
+	# 		{result: R_PARAMS_ERROR, reason: "time format error"}
+	# 		{result: R_SUCCESS, returnObj: [{"sleep_time": (int) how many seconds this user sleep, use it for sorting,
+	# 										"sleep_time_str": (string) such as "7.52 hours",
+	# 										"sleep_city": (string)in which user go to bed,
+	# 										"wake_city": (string)in which user get up,
+	# 										"friend_name": (string)friend_name,
+	# 										"sleep_date": (int) format is "%Y%m%d" the date user go to bed}, ... ]
 	def sleep_record
+		
+		begin
+			threshouldTime = (Time.parse(params[:userTime]) - 7.days).beginning_of_day
+		rescue ArgumentError => expect
+			return render json: {result: R_PARAMS_ERROR, reason: "time format error"}
+		end
 
-		# userClockedInData = UserClockedIn.where(user_id: session[:user_id]).order(created_at: :desc).map{ |uClockData|
-		# 	{clocked_in: uClockData.clocked_in.strftime("%Y-%m-%d %H:%M:%S"), timezone: uClockData.timezone, user_action: user_action_str(uClockData.action_id), city: uClockData.city}
-		# }
+		threshouldTimePeopleView = threshouldTime.strftime("%Y%m%d").to_i
+		sleepObj = {"sleep_time": []}
+		# use eager_load to avoid the N+1 problem and we can use where to set the condition of "clocked_in" 
+		# we fetch one more day before(threshouldTime - 1.days) because the difference between timezone and people view
+		UserFollowList.eager_load(:friend => [:user_clocked_in]).where(user_id: session[:user_id]).where('clocked_in >= ?', (threshouldTime - 1.days).beginning_of_day).order(:clocked_in).each do |uFlo|
+			tempu = uFlo.friend.user_clocked_in
+			
+			sleepObj[uFlo.friend_id] = {"friend_name": uFlo.friend.name, "go_to_bed_time": "-", "sleep_city": ""}
+			tempu.each do |clockedObj|
 
-		userClockedInData = UserFollowList.includes(:friend => [:user_clocked_in]).where(user_id: session[:user_id]).order(created_at: :desc).map{ |uClockData|
-			{clocked_in: uClockData.clocked_in.strftime("%Y-%m-%d %H:%M:%S"), timezone: uClockData.timezone, user_action: user_action_str(uClockData.action_id), city: uClockData.city}
-		}
+				# we might in the timezone +12 place and want to know the friend whom in timezone -12
+				# In this situation we use the threshouldTimePeopleView to check the condition.
+				curObjTime = Time.parse(clockedObj.clocked_in.to_s).in_time_zone(clockedObj.timezone)
+				next if curObjTime.strftime("%Y%m%d").to_i < threshouldTimePeopleView
+
+				# if there are more than one sleep time came out continuously, we would only use the last one
+				if clockedObj.action_id == UserClockedIn::USER_ACTION_SLEEP
+					sleepObj[uFlo.friend_id][:go_to_bed_time] = Time.parse(clockedObj.clocked_in.to_s)
+				end
+
+				# if there are more than one wake up time came out continuously, we would only use the first one
+				if clockedObj.action_id == UserClockedIn::USER_ACTION_WAKE_UP && sleepObj[uFlo.friend_id][:go_to_bed_time] != "-"
+					# since the value is save in utc + 0 timezone, we can calculate it.
+					sleepObj[:sleep_time] << {"sleep_time": clockedObj.clocked_in - sleepObj[uFlo.friend_id][:go_to_bed_time],
+							"sleep_time_str": "#{'%.2f' % ((clockedObj.clocked_in - sleepObj[uFlo.friend_id][:go_to_bed_time])/3600)} hours",
+							"sleep_city": sleepObj[uFlo.friend_id][:sleep_city],
+							"wake_city": clockedObj.city,
+							"friend_name": uFlo.friend.name,
+							"sleep_date": sleepObj[uFlo.friend_id][:go_to_bed_time].strftime("%Y%m%d").to_i}
+						sleepObj[uFlo.friend_id][:go_to_bed_time] = "-"
+				end
+			end
+		end
+
+		returnObj = sleepObj[:sleep_time].sort { |v1, v2| [v2[:sleep_time], v2[:sleep_date]] <=> [v1[:sleep_time], v1[:sleep_date]] }
+
+		render json: {result: R_SUCCESS, returnObj: returnObj}
 	end
 
 	private 
